@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô phỏng phân tử H₂</title>
+    <style>
+        /* Thêm CSS cho chú thích */
+        #legend {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        /* Thêm CSS cho thanh kéo */
+        #sliderContainer {
+            position: absolute;
+            right: 10px;
+            bottom: 10%;
+            width: 50px;
+            height: 300px;
+            text-align: center;
+        }
+        #legend.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas" style="width: 100%; height: 100vh;"></canvas>
+    <!-- Phần chú thích tổng quan -->
+    <div id="legend">
+        <p><strong>Quá trình liên kết:</strong> phân tử khí hydrogen (H<sub>2</sub>) hình thành khi hai nguyên tử hydrogen chia sẻ một cặp electron, tạo nên một liên kết mạnh mẽ và ổn định.</p>
+    </div>
+
+    <!-- Babylon.js -->
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+    <script>
+        // Tạo scene cơ bản
+        const canvas = document.getElementById("renderCanvas");
+        const engine = new BABYLON.Engine(canvas, true);
+
+        const createScene = function () {
+            const scene = new BABYLON.Scene(engine);
+
+            // Thêm camera
+            const camera = new BABYLON.ArcRotateCamera("camera1", Math.PI / 2, Math.PI / 4, 10, BABYLON.Vector3.Zero(), scene);
+            camera.attachControl(canvas, true);
+
+            // Thêm ánh sáng
+            const light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
+            light.intensity = 0.7;
+
+            // Tạo hai nguyên tử hydro
+            const hydrogen1 = BABYLON.MeshBuilder.CreateSphere("hydrogen1", {diameter: 1}, scene);
+            hydrogen1.position.x = -1.5;
+            const hydrogen2 = BABYLON.MeshBuilder.CreateSphere("hydrogen2", {diameter: 1}, scene);
+            hydrogen2.position.x = 1.5;
+
+            // Tạo liên kết giữa hai nguyên tử (đường thẳng)
+            const bond = BABYLON.MeshBuilder.CreateCylinder("bond", {height: 3, diameter: 0.2}, scene);
+            bond.rotation.z = Math.PI / 2;
+
+            // Đặt màu sắc cho các nguyên tử và liên kết
+            const hydrogenMaterial = new BABYLON.StandardMaterial("hydrogenMaterial", scene);
+            hydrogenMaterial.diffuseColor = new BABYLON.Color3(0.5, 0.5, 1); // Màu xanh dương nhạt
+            hydrogen1.material = hydrogenMaterial;
+            hydrogen2.material = hydrogenMaterial;
+
+            const bondMaterial = new BABYLON.StandardMaterial("bondMaterial", scene);
+            bondMaterial.diffuseColor = new BABYLON.Color3(1, 1, 1); // Màu trắng
+            bond.material = bondMaterial;
+
+            // **Thêm chú thích cho liên kết và nguyên tử hydro**
+            const advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+            // Chú thích cho liên kết H-H
+            const labelBond = new BABYLON.GUI.Rectangle("labelBond");
+            labelBond.background = "black";
+            labelBond.height = "30px";
+            labelBond.width = "120px";
+            labelBond.cornerRadius = 5;
+            labelBond.thickness = 1;
+            labelBond.color = "white";
+            labelBond.linkOffsetY = -20;
+            labelBond.alpha = 0.7;
+            advancedTexture.addControl(labelBond);
+            labelBond.linkWithMesh(bond);
+            const textBond = new BABYLON.GUI.TextBlock();
+            textBond.text = "Liên kết H-H";
+            textBond.color = "white";
+            labelBond.addControl(textBond);
+
+            // Chú thích cho Hydrogen 1
+            const labelH1 = new BABYLON.GUI.Rectangle("labelH1");
+            labelH1.background = "black";
+            labelH1.height = "30px";
+            labelH1.width = "100px";
+            labelH1.cornerRadius = 5;
+            labelH1.thickness = 1;
+            labelH1.color = "white";
+            labelH1.linkOffsetY = -20;
+            labelH1.alpha = 0.7;
+            advancedTexture.addControl(labelH1);
+            labelH1.linkWithMesh(hydrogen1);
+            const textH1 = new BABYLON.GUI.TextBlock();
+            textH1.text = "Hydrogen(H)";
+            textH1.color = "white";
+            labelH1.addControl(textH1);
+
+            // Chú thích cho Hydrogen 2
+            const labelH2 = new BABYLON.GUI.Rectangle("labelH2");
+            labelH2.background = "black";
+            labelH2.height = "30px";
+            labelH2.width = "100px";
+            labelH2.cornerRadius = 5;
+            labelH2.thickness = 1;
+            labelH2.color = "white";
+            labelH2.linkOffsetY = -20;
+            labelH2.alpha = 0.7;
+            advancedTexture.addControl(labelH2);
+            labelH2.linkWithMesh(hydrogen2);
+            const textH2 = new BABYLON.GUI.TextBlock();
+            textH2.text = "Hydrogen(H)";
+            textH2.color = "white";
+            labelH2.addControl(textH2);
+
+            // **Chú thích mô tả liên kết H₂ ở góc trái**
+            const labelDescription = new BABYLON.GUI.Rectangle("labelDescription");
+            labelDescription.background = "black";
+            labelDescription.height = "30px";
+            labelDescription.width = "200px";
+            labelDescription.cornerRadius = 5;
+            labelDescription.thickness = 1;
+            labelDescription.color = "white";
+            labelDescription.alpha = 0.7;
+            advancedTexture.addControl(labelDescription);
+            const textDescription = new BABYLON.GUI.TextBlock();
+            textDescription.text = "Liên kết hóa học H₂: H - H";
+            textDescription.color = "white";
+            labelDescription.addControl(textDescription);
+            labelDescription.isVisible = false; // Ẩn chú thích ban đầu
+
+            // Ẩn chú thích ban đầu
+            labelBond.isVisible = false;
+            labelH1.isVisible = false;
+            labelH2.isVisible = false;
+
+            // **Tạo chế độ bật/tắt chú thích khi click chuột**
+            scene.onPointerDown = function (evt, pickResult) {
+                if (pickResult.hit) {
+                    if (pickResult.pickedMesh === hydrogen1) {
+                        labelH1.isVisible = !labelH1.isVisible;  // Bật/tắt chú thích Hydrogen 1
+                    } else if (pickResult.pickedMesh === hydrogen2) {
+                        labelH2.isVisible = !labelH2.isVisible;  // Bật/tắt chú thích Hydrogen 2
+                    } else if (pickResult.pickedMesh === bond) {
+                        labelBond.isVisible = !labelBond.isVisible; // Bật/tắt chú thích liên kết H-H
+                    } else {
+                        labelDescription.isVisible = !labelDescription.isVisible; // Bật/tắt chú thích mô tả liên kết H₂
+                    }
+                }
+            };
+
+            return scene;
+        };
+
+        const scene = createScene();
+        engine.runRenderLoop(function () {
+            scene.render();
+        });
+
+        window.addEventListener("resize", function () {
+            engine.resize();
+        });
+
+        // **Thêm thanh kéo dọc để điều chỉnh thu/phóng**
+        const slider = new BABYLON.GUI.Slider();
+        slider.minimum = 5;
+        slider.maximum = 20;
+        slider.value = 10;
+        slider.height = "200px";
+        slider.width = "20px";
+        slider.isVertical = true;
+        slider.color = "green";
+        slider.background = "gray";
+        slider.onValueChangedObservable.add(function (value) {
+            scene.activeCamera.radius = value; // Điều chỉnh khoảng cách camera
+        });
+
+        const advancedTextureSlider = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+        advancedTextureSlider.addControl(slider);
+
+        slider.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        slider.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        slider.left = -30;
+        slider.top = -30;
+
+    </script>
+</body>
+</html>

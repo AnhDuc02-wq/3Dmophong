@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô phỏng liên kết cộng hóa trị Hydro</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        #renderCanvas {
+            width: 100%;
+            height: 100vh;
+        }
+        #annotation {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px;
+            display: none;
+            white-space: pre-line;
+            font-family: Arial, sans-serif;
+            border-radius: 5px;
+        }
+        #speedControl {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    <div id="annotation">
+        Nhấp vào màn hình để hiển thị/ẩn chú thích
+    </div>
+    <div id="speedControl">
+        <input type="range" id="speedSlider" min="1" max="100" value="50">
+        <span id="speedValue">Tốc độ: 50%</span>
+    </div>
+    
+    <script>
+        // Khởi tạo scene và engine
+        const canvas = document.getElementById("renderCanvas");
+        const engine = new BABYLON.Engine(canvas, true);
+        const scene = new BABYLON.Scene(engine);
+
+        // Tạo camera
+        const camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 2, 15, BABYLON.Vector3.Zero(), scene);
+        camera.attachControl(canvas, false);
+
+        // Tạo ánh sáng
+        const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, 0), scene);
+
+        // Hàm tạo hạt nhân (proton)
+        function createNucleus(name, color) {
+            const nucleus = BABYLON.MeshBuilder.CreateSphere(name, {diameter: 1}, scene);
+            nucleus.material = new BABYLON.StandardMaterial(name + "Mat", scene);
+            nucleus.material.diffuseColor = color;
+            return nucleus;
+        }
+
+        const nucleus1 = createNucleus("nucleus1", new BABYLON.Color3(1, 0, 0));
+        const nucleus2 = createNucleus("nucleus2", new BABYLON.Color3(1, 0, 0));
+
+        // Hàm tạo lớp vỏ electron
+        function createAtom(name) {
+            const atom = BABYLON.MeshBuilder.CreateSphere(name, {diameter: 4}, scene);
+            atom.material = new BABYLON.StandardMaterial(name + "Mat", scene);
+            atom.material.alpha = 0.1;
+            return atom;
+        }
+
+        const atom1 = createAtom("atom1");
+        const atom2 = createAtom("atom2");
+
+        // Hàm tạo quỹ đạo electron
+        function createOrbit(name, parent) {
+            const circlePath = [];
+            for(let theta = 0; theta <= 2 * Math.PI; theta += 0.1) {
+                circlePath.push(new BABYLON.Vector3(2 * Math.cos(theta), 2 * Math.sin(theta), 0));
+            }
+            circlePath.push(circlePath[0]);
+
+            const circle = BABYLON.MeshBuilder.CreateLines(name, {points: circlePath}, scene);
+            circle.color = new BABYLON.Color3(1, 1, 1);
+            circle.parent = parent;
+            return circle;
+        }
+
+        const orbit1 = createOrbit("circle1", atom1);
+        const orbit2 = createOrbit("circle2", atom2);
+
+        // Hàm tạo electron
+        function createElectron(name, parent, position) {
+            const electron = BABYLON.MeshBuilder.CreateSphere(name, {diameter: 0.2}, scene);
+            electron.material = new BABYLON.StandardMaterial(name + "Mat", scene);
+            electron.material.diffuseColor = new BABYLON.Color3(0, 1, 0);
+            electron.parent = parent;
+            electron.position = position;
+            return electron;
+        }
+
+        const electron1 = createElectron("electron1", atom1, new BABYLON.Vector3(2, 0, 0));
+        const electron2 = createElectron("electron2", atom2, new BABYLON.Vector3(-2, 0, 0));
+
+        // Xử lý animation
+        let time = 0;
+        let animationSpeed = 0.04;
+
+        scene.registerBeforeRender(function() {
+            time += animationSpeed;
+    
+            const distance = Math.max(6 - time * 0.2, 3);
+            const halfDistance = distance / 2;
+
+            nucleus1.position.x = atom1.position.x = -halfDistance;
+            nucleus2.position.x = atom2.position.x = halfDistance;
+
+            
+        });
+
+        // Xử lý hiển thị chú thích
+        const annotation = document.getElementById("annotation");
+        let isAnnotationVisible = false;
+
+        function toggleAnnotation() {
+            isAnnotationVisible = !isAnnotationVisible;
+            annotation.style.display = isAnnotationVisible ? "block" : "none";
+        }
+
+        canvas.addEventListener("click", toggleAnnotation);
+
+        const annotationText = `
+      Mô phỏng liên kết cộng hóa trị Hydro:
+    - Hình cầu đỏ: Hạt nhân (proton)
+    - Hình cầu xanh lá nhỏ: Electron
+    - Đường tròn trắng: Quỹ đạo electron
+    - Hình cầu mờ bao quanh: Biểu diễn lớp vỏ electron
+    - Để có cấu trúc electron bền vững , hai nguyên tử hydrogen liên kết với nhau mỗi nguyên tử hydrogen góp chung 1 electron tạo thành 1 cặp electron dùng chung. 
+        `;
+
+        annotation.innerHTML = annotationText;
+
+        // Xử lý điều chỉnh tốc độ
+        const speedSlider = document.getElementById("speedSlider");
+        const speedValue = document.getElementById("speedValue");
+
+        speedSlider.addEventListener("input", function() {
+            const speed = this.value;
+            animationSpeed = speed / 1250;
+            speedValue.textContent = `Tốc độ: ${speed}%`;
+        });
+
+        // Chạy render loop
+        engine.runRenderLoop(() => {
+            scene.render();
+        });
+
+        // Xử lý thay đổi kích thước cửa sổ
+        window.addEventListener("resize", () => {
+            engine.resize();
+        });
+    </script>
+</body>
+</html>

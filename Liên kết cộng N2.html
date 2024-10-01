@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô phỏng liên kết cộng hóa trị Nitơ (N2)</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        #renderCanvas {
+            width: 100%;
+            height: 100vh;
+        }
+        #annotation {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px;
+            display: none;
+            white-space: pre-line;
+            font-family: Arial, sans-serif;
+            border-radius: 5px;
+        }
+        #speedControl {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    <div id="annotation">
+        Nhấp vào màn hình để hiển thị/ẩn chú thích
+    </div>
+    <div id="speedControl">
+        <input type="range" id="speedSlider" min="1" max="100" value="50">
+        <span id="speedValue">Tốc độ: 100%</span>
+    </div>
+    
+    <script>
+        // Khởi tạo scene và camera
+        const canvas = document.getElementById("renderCanvas");
+        const engine = new BABYLON.Engine(canvas, true);
+        const scene = new BABYLON.Scene(engine);
+
+        const camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 2, 20, BABYLON.Vector3.Zero(), scene);
+        camera.attachControl(canvas, false);
+
+        // Tạo ánh sáng
+        const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, 0), scene);
+
+        // Hàm tạo hạt nhân
+
+        function createNucleus(name, color) {
+            // Thay đổi đường kính từ 2 xuống 1.5 hoặc 1
+            const nucleus = BABYLON.MeshBuilder.CreateSphere(name, {diameter: 1.5}, scene);
+            nucleus.material = new BABYLON.StandardMaterial(name + "Mat", scene);
+            nucleus.material.diffuseColor = color;
+            return nucleus;
+        }
+
+        // Tạo hai hạt nhân Nitơ
+        const nucleus1 = createNucleus("nucleus1", new BABYLON.Color3(1, 0, 0));
+        const nucleus2 = createNucleus("nucleus2", new BABYLON.Color3(1, 0, 0));
+
+        // Hàm tạo nguyên tử (lớp vỏ electron)
+        function createAtom(name) {
+
+        // Tạo hình cầu mờ đại diện cho lớp vỏ electron    
+            const atom = BABYLON.MeshBuilder.CreateSphere(name, {diameter: 8}, scene);
+            atom.material = new BABYLON.StandardMaterial(name + "Mat", scene);
+            atom.material.alpha = 0.1;
+            return atom;
+        }
+
+        // Tạo hai nguyên tử Nitơ
+        const atom1 = createAtom("atom1");
+        const atom2 = createAtom("atom2");
+
+        // Hàm tạo quỹ đạo electron
+        function createOrbit(name, parent, radius) {
+           
+        // Tạo đường tròn đại diện cho quỹ đạo electron    
+            const circlePath = [];
+            for(let theta = 0; theta <= 2 * Math.PI; theta += 0.1) {
+                circlePath.push(new BABYLON.Vector3(radius * Math.cos(theta), radius * Math.sin(theta), 0));
+            }
+            circlePath.push(circlePath[0]);
+
+            const circle = BABYLON.MeshBuilder.CreateLines(name, {points: circlePath}, scene);
+            circle.color = new BABYLON.Color3(1, 1, 1);
+            circle.parent = parent;
+            return circle;
+        }
+
+        // Tạo các quỹ đạo cho hai nguyên tử
+
+        const innerOrbit1 = createOrbit("innerOrbit1", atom1, 2);
+        const outerOrbit1 = createOrbit("outerOrbit1", atom1, 4);
+        const innerOrbit2 = createOrbit("innerOrbit2", atom2, 2);
+        const outerOrbit2 = createOrbit("outerOrbit2", atom2, 4);
+        
+        // Hàm tạo electron
+
+        function createElectron(name) {
+            const electron = BABYLON.MeshBuilder.CreateSphere(name, {diameter: 0.3}, scene);
+            electron.material = new BABYLON.StandardMaterial(name + "Mat", scene);
+            electron.material.diffuseColor = new BABYLON.Color3(0, 1, 0);
+            return electron;
+        }
+
+        // Tạo 14 electron (7 cho mỗi nguyên tử Nitơ)
+        const electrons = [];
+        for (let i = 0; i < 14; i++) 
+            electrons.push(createElectron(`electron${i+1}`));
+
+        // Biến để theo dõi thời gian và trạng thái liên kết    
+        let time = 0;
+        let isLinkageComplete = false;
+
+        // Hàm cập nhật vị trí các thành phần trong mỗi khung hình
+        scene.registerBeforeRender(function() {
+            if (!isLinkageComplete) {
+                time += 0.04 * (speed / 50); // Điều chỉnh tốc độ dựa trên giá trị của thanh trượt
+            }
+        
+        // Cập nhật vị trí của hạt nhân, nguyên tử và electron
+            const distance = Math.max(10 - time * 0.1, 6);
+            const halfDistance = distance / 2;
+
+            nucleus1.position.x = atom1.position.x = -halfDistance;
+            nucleus2.position.x = atom2.position.x = halfDistance;
+
+            const centerX = (atom1.position.x + atom2.position.x) / 2;
+
+        // Xử lý chuyển động của electron trước và sau khi liên kết
+
+            if (distance > 6) {
+                // Trước khi liên kết
+                for (let i = 0; i < 14; i++) {
+                    const isFirstAtom = i < 7;
+                    const atom = isFirstAtom ? atom1 : atom2;
+                    const localIndex = isFirstAtom ? i : i - 7;
+            
+                    if (localIndex < 2) {
+                        // Inner orbit electrons
+                        const angle = localIndex * Math.PI + time * (isFirstAtom ? 1 : -1);
+                        electrons[i].position = new BABYLON.Vector3(
+                            atom.position.x + 2 * Math.cos(angle),
+                            2 * Math.sin(angle),
+                            0
+                        );
+                    } else {
+                        // Outer orbit electrons
+                        const angle = (localIndex - 2) * (Math.PI * 2 / 5) + time * (isFirstAtom ? 1 : -1);
+                        electrons[i].position = new BABYLON.Vector3(
+                            atom.position.x + 4 * Math.cos(angle),
+                            4 * Math.sin(angle),
+                            0
+                        );
+                    }
+                }
+            } else {
+                // Sau khi liên kết
+                if (!isLinkageComplete) {
+                    isLinkageComplete = true;
+                }
+
+                for (let i = 0; i < 14; i++) {
+                    if (i < 4) {
+                        // 2 electron inner orbit của mỗi atom
+                        const isFirstAtom = i < 2;
+                        const atom = isFirstAtom ? atom1 : atom2;
+                        const angle = isFirstAtom ? (i * Math.PI) : (i - 2) * Math.PI;
+                        electrons[i].position = new BABYLON.Vector3(
+                            atom.position.x + 2 * Math.cos(angle),
+                            2 * Math.sin(angle),
+                            0
+                        );
+                    } else if (i < 8) {
+                        // 2 electron outer orbit còn lại của mỗi atom
+                        const isFirstAtom = i < 6;
+                        const atom = isFirstAtom ? atom1 : atom2;
+                        const angle = isFirstAtom ? ((i - 4) * Math.PI) : ((i - 6) * Math.PI);
+                        electrons[i].position = new BABYLON.Vector3(
+                            atom.position.x + 4 * Math.cos(angle),
+                            4 * Math.sin(angle),
+                            0
+                        );
+                    } else {
+                        // 6 electron đứng thẳng hàng dọc giữa liên kết
+                        const verticalPosition = (i - 8) - 2.5;
+                        electrons[i].position = new BABYLON.Vector3(centerX, verticalPosition, 0);
+                    }
+                }
+            }
+        });        
+
+        // Xử lý hiển thị/ẩn chú thích
+        const annotation = document.getElementById("annotation");
+        let isAnnotationVisible = false;
+
+        // Bật/tắt hiển thị chú thích
+        function toggleAnnotation() {
+            isAnnotationVisible = !isAnnotationVisible;
+            annotation.style.display = isAnnotationVisible ? "block" : "none";
+        }
+
+        canvas.addEventListener("click", toggleAnnotation);
+
+        // Nội dung chú thích
+
+        const annotationText = `
+    Mô phỏng liên kết cộng hóa trị Nitơ (N2):
+    - Hình cầu đỏ: Hạt nhân Nitơ
+    - Hình cầu xanh lá nhỏ: Electron
+    - Đường tròn màu trắng : Quỹ đạo electron
+    - Hình cầu mờ bao quanh: Biểu diễn lớp vỏ electron
+    - Hai nguyên tử nitrogen liên kết với nhau  mỗi nguyên tử nitrogen góp chung 3 electron tạo thành ba cặp electron dùng chung
+        `;
+
+        annotation.innerHTML = annotationText;
+        // Xử lý điều chỉnh tốc độ
+        const speedSlider = document.getElementById("speedSlider");
+        const speedValue = document.getElementById("speedValue");
+
+        let speed = 50; // Giá trị mặc định
+
+        speedSlider.addEventListener("input", function() {
+            speed = this.value;
+            speedValue.textContent = `Tốc độ: ${speed}%`;
+        });
+        
+
+        // Vòng lặp render chính
+        engine.runRenderLoop(() => {
+            scene.render();
+        });
+
+        // Xử lý sự kiện thay đổi kích thước cửa sổ
+        window.addEventListener("resize", () => {
+            engine.resize();
+        });
+    </script>
+</body>
+</html>

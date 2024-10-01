@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô hình phân tử CO2</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        #renderCanvas {
+            width: 100%;
+            height: 100vh;
+        }
+        #annotation {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px;
+            display: none;
+            white-space: pre-line;
+            font-family: Arial, sans-serif;
+            border-radius: 5px;
+        }
+        #speedControl {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    <div id="annotation">Nhấp vào màn hình để hiển thị/ẩn chú thích</div>
+    <div id="speedControl">
+        <input type="range" id="speedSlider" min="1" max="100" value="50">
+        <span id="speedValue">Tốc độ: 50%</span>
+    </div>
+     <script>
+         // Khởi tạo scene và engine
+        const canvas = document.getElementById("renderCanvas");
+        const engine = new BABYLON.Engine(canvas, true);
+        const scene = new BABYLON.Scene(engine);
+
+        // Tạo camera
+        const camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 2, 15, BABYLON.Vector3.Zero(), scene);
+        camera.attachControl(canvas, true);
+
+        // Tạo ánh sáng
+        const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, 0), scene);
+
+        // Biến theo dõi tiến trình hoạt ảnh
+        let animationProgress = 0;
+
+        // Hàm tạo nguyên tử
+        function createAtom(name, color, position, innerElectrons, outerElectrons) {
+            const atom = BABYLON.MeshBuilder.CreateSphere(name, {diameter: 0.8}, scene);
+            atom.position = position;
+            atom.material = new BABYLON.StandardMaterial(name + "Mat", scene);
+            atom.material.diffuseColor = color;
+
+            const innerSphere = BABYLON.MeshBuilder.CreateSphere(name + "Inner", {diameter: 3, sideOrientation: BABYLON.Mesh.DOUBLESIDE}, scene);
+            innerSphere.parent = atom;
+            innerSphere.material = new BABYLON.StandardMaterial(name + "InnerMat", scene);
+            innerSphere.material.alpha = 0.1;
+
+            const outerSphere = BABYLON.MeshBuilder.CreateSphere(name + "Outer", {diameter: 5, sideOrientation: BABYLON.Mesh.DOUBLESIDE}, scene);
+            outerSphere.parent = atom;
+            outerSphere.material = new BABYLON.StandardMaterial(name + "OuterMat", scene);
+            outerSphere.material.alpha = 0.1;
+
+            createElectrons(atom, innerElectrons, 1.5, name + "Inner");
+            createElectrons(atom, outerElectrons, 2.5, name + "Outer");
+
+            createCircle(atom, 1.5);  // Vòng tròn trong
+            createCircle(atom, 2.5);  // Vòng tròn ngoài
+
+            return atom;
+        }
+
+        // Hàm tạo electron cho giao điểm giữa 3 hình cầu
+        function createOuterElectronsAtIntersection(parent1, parent2, centerAtom, count, name) {
+            const positions = calculateIntersectionPoints(parent1.position, parent2.position, centerAtom.position);
+            for (let i = 0; i < count; i++) {
+                const electron = BABYLON.MeshBuilder.CreateSphere(name + "Electron" + i, {diameter: 0.2}, scene);
+                electron.position = positions[i];
+                electron.material = new BABYLON.StandardMaterial(name + "ElectronMat" + i, scene);
+                electron.material.diffuseColor = new BABYLON.Color3(0, 1, 0);
+            }
+        }
+          // Hàm tính toán vị trí giao nhau của 3 hình cầu
+          function calculateIntersectionPoints(pos1, pos2, centerPos) {
+              const midPoint = BABYLON.Vector3.Center(pos1, centerPos);
+              const direction = pos2.subtract(pos1).normalize();
+              const perpendicular = new BABYLON.Vector3(direction.z, 0, -direction.x).normalize();
+    
+              const offset = 0.3; // Điều chỉnh kích thước hình vuông
+    
+              return [
+                  midPoint.add(perpendicular.scale(offset)).add(new BABYLON.Vector3(0, offset, 0)),
+                  midPoint.add(perpendicular.scale(-offset)).add(new BABYLON.Vector3(0, offset, 0)),
+                  midPoint.add(perpendicular.scale(-offset)).add(new BABYLON.Vector3(0, -offset, 0)),
+                  midPoint.add(perpendicular.scale(offset)).add(new BABYLON.Vector3(0, -offset, 0))
+              ];
+          }
+        
+
+        // Hàm tạo electron
+        function createElectrons(parent, count, radius, name) {
+            for (let i = 0; i < count; i++) {
+                const electron = BABYLON.MeshBuilder.CreateSphere(name + "Electron" + i, {diameter: 0.2}, scene);
+                electron.parent = parent;
+                electron.material = new BABYLON.StandardMaterial(name + "ElectronMat" + i, scene);
+                electron.material.diffuseColor = new BABYLON.Color3(0, 1, 0);
+
+                const angle = (i / count) * Math.PI * 2;
+                electron.position.x = radius * Math.cos(angle);
+                electron.position.y = radius * Math.sin(angle);
+
+                scene.registerBeforeRender(() => {
+                    const time = performance.now() * 0.001;
+                    const rotationAngle = time + angle;
+                    electron.position.x = radius * Math.cos(rotationAngle);
+                    electron.position.y = radius * Math.sin(rotationAngle);
+                });
+            }
+        }
+
+        // Tạo vòng tròn
+        function createCircle(parent, radius) {
+            const points = [];
+            for (let i = 0; i <= 360; i++) {
+                const angle = i * (Math.PI / 180);
+                points.push(new BABYLON.Vector3(radius * Math.cos(angle), radius * Math.sin(angle), 0));
+            }
+            const circle = BABYLON.MeshBuilder.CreateLines("circle", {points: points}, scene);
+            circle.parent = parent;
+            circle.color = new BABYLON.Color3(1, 1, 1);
+            return circle;
+        }
+
+        // Tạo nguyên tử Carbon
+        const carbon = createAtom("Carbon", new BABYLON.Color3(0.5, 0.5, 0.5), new BABYLON.Vector3(0, 0, 0), 2, 0);
+
+        // Tạo nguyên tử Oxygen bên trái
+        const oxygenLeft = createAtom("OxygenLeft", new BABYLON.Color3(1, 0, 0), new BABYLON.Vector3(-8, 0, 0), 2, 4);
+
+        // Tạo nguyên tử Oxygen bên phải
+        const oxygenRight = createAtom("OxygenRight", new BABYLON.Color3(1, 0, 0), new BABYLON.Vector3(8, 0, 0), 2, 4);
+
+        // Chia 4 electron của Oxygen vào vị trí giao nhau với Carbon (mỗi bên 2 từ Carbon và 2 từ Oxy)
+        createOuterElectronsAtIntersection(oxygenLeft, carbon, carbon, 4, "OxygenLeft");
+        createOuterElectronsAtIntersection(oxygenRight, carbon, carbon, 4, "OxygenRight");
+
+        // Hàm cập nhật vị trí electron ở giao điểm
+        function updateIntersectionElectrons(parent, centerAtom, name) {
+            const positions = calculateIntersectionPoints(parent.position, centerAtom.position, centerAtom.position);
+            for (let i = 0; i < 4; i++) {
+                const electron = scene.getMeshByName(name + "Electron" + i);
+                if (electron) {
+                    electron.position = positions[i];
+                }
+            }
+        }
+
+        // Xử lý hiển thị/ẩn chú thích
+        const annotation = document.getElementById("annotation");
+        let isAnnotationVisible = false;
+
+        // Bật/tắt hiển thị chú thích
+        function toggleAnnotation() {
+            isAnnotationVisible = !isAnnotationVisible;
+            annotation.style.display = isAnnotationVisible ? "block" : "none";
+        }
+
+        canvas.addEventListener("click", toggleAnnotation);
+
+        // Nội dung chú thích
+        const annotationText = `
+    Mô phỏng liên kết cộng hóa trị CO2:
+    - Hình cầu xám lớn: Hạt nhân Carbon
+    - Hình cầu đỏ nhỏ: Electron
+    - Hình cầu mờ bao quanh: Biểu diễn lớp vỏ electron
+    - Hai nguyên tử oxygen liên kết với một nguyên tử carbon,nguyên tử carbon góp chung với mỗi nguyên tử oxygen hai electron tạo thành hai cặp electron dùng chung
+`;
+
+        annotation.innerHTML = annotationText;
+
+        // Xử lý điều chỉnh tốc độ
+            const speedSlider = document.getElementById("speedSlider");
+            const speedValue = document.getElementById("speedValue");
+
+            let animationSpeed = 0.005; // Giá trị mặc định
+
+            speedSlider.addEventListener("input", function() {
+                const speed = this.value;
+                animationSpeed = speed / 10000; // Điều chỉnh tỉ lệ này để có phạm vi tốc độ phù hợp
+                speedValue.textContent = `Tốc độ: ${speed}%`;
+            });
+
+        
+            // Render loop
+            engine.runRenderLoop(() => {
+                if (animationProgress < 1) {
+                    animationProgress += animationSpeed;
+                
+                oxygenLeft.position.x = BABYLON.Scalar.Lerp(-8, -4, animationProgress);
+                oxygenRight.position.x = BABYLON.Scalar.Lerp(8, 4, animationProgress);
+                
+                // Cập nhật vị trí electron ở giao điểm
+                updateIntersectionElectrons(oxygenLeft, carbon, "OxygenLeft");
+                updateIntersectionElectrons(oxygenRight, carbon, "OxygenRight");
+            }
+            scene.render();
+        });
+
+        // Resize khi thay đổi kích thước màn hình
+        window.addEventListener("resize", () => {
+            engine.resize();
+        });
+    </script>
+</body>
+</html>

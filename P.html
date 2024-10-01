@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nitrogen Atom Simulation</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+    <style>/* Thêm CSS cho thanh kéo */
+        #sliderContainer {
+            position: absolute;
+            right: 10px;
+            bottom: 10%;
+            width: 50px;
+            height: 300px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas" style="width: 100%; height: 100vh;"></canvas>
+    <div id="tooltip" style="position: absolute; top: 10px; left: 10px; background-color: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 5px; display: none;">
+        <h3>Phosphorus (P) :</h3>
+        <ul>
+            <li>Hình dạng :	 Không màu, trắng sáp, đỏ tươi hơi vàng, đỏ, tím, đen</li>
+            <li>Số hiệu nguyên tử (Z) :	15</li>
+            <li>Khối lượng nguyên tử chuẩn (±) (Ar) : 30.973762</li>
+            <li>Phân loại :  	Phi kim  </li>
+            <li>Nhóm, phân lớp : 15, p</li>
+            <li>Chu kỳ : 3</li>
+            <li>Cấu hình electron :	[Ne] 3s2 3p3</li>
+        </ul>
+    </div>
+    <script>
+        // Khởi tạo scene
+        const canvas = document.getElementById("renderCanvas");
+        const engine = new BABYLON.Engine(canvas, true);
+        const scene = new BABYLON.Scene(engine);
+
+        // Các hằng số
+        const ELECTRON_SPEED = 0.002;
+        const OUTER_ELECTRON_SPEED = 0.001;
+        const OUTER_CIRCLE_RADIUS = 3;
+        const OUTERMOST_CIRCLE_RADIUS = 4; // Bán kính vòng tròn mới nhất
+
+        // Tạo camera
+        const camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 2, 10, BABYLON.Vector3.Zero(), scene);
+        camera.attachControl(canvas, true);
+
+        // Tạo ánh sáng
+        const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, 0), scene);
+
+        // Tạo hạt nhân của nguyên tử (hình cầu ở trung tâm)
+        const nucleus = BABYLON.MeshBuilder.CreateSphere("nucleus", {diameter: 1}, scene);
+        nucleus.material = new BABYLON.StandardMaterial("nucleusMat", scene);
+        nucleus.material.diffuseColor = new BABYLON.Color3(1, 0, 0); // Màu đỏ
+
+        // Tạo hình cầu lớn để bao quanh và chứa electron
+        const outerSphere = BABYLON.MeshBuilder.CreateSphere("outerSphere", {diameter: 4, sideOrientation: BABYLON.Mesh.DOUBLESIDE}, scene);
+        outerSphere.material = new BABYLON.StandardMaterial("outerSphereMat", scene);
+        outerSphere.material.alpha = 0.1; // Làm cho hình cầu bao quanh mờ đi
+
+        // Tạo vòng tròn chia đôi hình cầu
+        const circlePath = [];
+        const circleRadius = 2;
+        const deltaTheta = 0.05;
+        for(let theta = 0; theta <= 2 * Math.PI; theta += deltaTheta) {
+            circlePath.push(new BABYLON.Vector3(circleRadius * Math.cos(theta), 0, circleRadius * Math.sin(theta)));
+        }
+        circlePath.push(circlePath[0]);
+
+        const curve = BABYLON.Curve3.CreateCatmullRomSpline(circlePath, 60, true);
+        const dividingCircle = BABYLON.MeshBuilder.CreateLines("dividingCircle", {points: curve.getPoints()}, scene);
+        dividingCircle.color = new BABYLON.Color3(1, 1, 1); // Màu trắng
+
+        // Tạo electron (hình cầu nhỏ màu xanh lá)
+        const electron = BABYLON.MeshBuilder.CreateSphere("electron", {diameter: 0.2}, scene);
+        electron.material = new BABYLON.StandardMaterial("electronMat", scene);
+        electron.material.diffuseColor = new BABYLON.Color3(0, 1, 0); // Màu xanh lá
+
+        // Tạo electron thứ hai (màu xanh lá)
+        const electron2 = BABYLON.MeshBuilder.CreateSphere("electron2", {diameter: 0.2}, scene);
+        electron2.material = new BABYLON.StandardMaterial("electron2Mat", scene);
+        electron2.material.diffuseColor = new BABYLON.Color3(0, 1, 0); // Màu xanh lá 
+
+        // Tạo vòng tròn bên ngoài
+        const outerCirclePath = [];
+        for(let theta = 0; theta <= 2 * Math.PI; theta += deltaTheta) {
+            outerCirclePath.push(new BABYLON.Vector3(OUTER_CIRCLE_RADIUS * Math.cos(theta), 0, OUTER_CIRCLE_RADIUS * Math.sin(theta)));
+        }
+        outerCirclePath.push(outerCirclePath[0]);
+
+        const outerCurve = BABYLON.Curve3.CreateCatmullRomSpline(outerCirclePath, 60, true);
+        const outerDividingCircle = BABYLON.MeshBuilder.CreateLines("outerDividingCircle", {points: outerCurve.getPoints()}, scene);
+        outerDividingCircle.color = new BABYLON.Color3(0.5, 0.5, 0.5); // Màu xám
+
+        // Tạo vòng tròn mới nhất bên ngoài cùng
+        const outermostCirclePath = [];
+        for(let theta = 0; theta <= 2 * Math.PI; theta += deltaTheta) {
+            outermostCirclePath.push(new BABYLON.Vector3(OUTERMOST_CIRCLE_RADIUS * Math.cos(theta), 0, OUTERMOST_CIRCLE_RADIUS * Math.sin(theta)));
+        }
+        outermostCirclePath.push(outermostCirclePath[0]);
+
+        const outermostCurve = BABYLON.Curve3.CreateCatmullRomSpline(outermostCirclePath, 60, true);
+        const outermostDividingCircle = BABYLON.MeshBuilder.CreateLines("outermostDividingCircle", {points: outermostCurve.getPoints()}, scene);
+        outermostDividingCircle.color = new BABYLON.Color3(0.3, 0.3, 0.3); // Màu xám đậm hơn
+
+        // Vị trí ban đầu của electron
+        electron.position.x = circleRadius;
+
+        // Tạo hình cầu lớn bao bọc
+        const outerMostSphere = BABYLON.MeshBuilder.CreateSphere("outerMostSphere", {diameter: 10, sideOrientation: BABYLON.Mesh.DOUBLESIDE}, scene);
+        outerMostSphere.material = new BABYLON.StandardMaterial("outerMostSphereMat", scene);
+        outerMostSphere.material.alpha = 0.2; // Độ trong suốt cao
+        outerMostSphere.material.specularColor = new BABYLON.Color3(0, 0, 0); // Loại bỏ hiệu ứng bóng
+
+        // Tạo 8 electron cho vòng ngoài
+        const outerElectrons = [];
+        for (let i = 0; i < 8; i++) {
+            const outerElectron = BABYLON.MeshBuilder.CreateSphere(`outerElectron${i}`, {diameter: 0.2}, scene);
+            outerElectron.material = new BABYLON.StandardMaterial(`outerElectronMat${i}`, scene);
+            outerElectron.material.diffuseColor = new BABYLON.Color3(0, 1, 0); // Màu xanh lá
+            outerElectrons.push(outerElectron);
+        }
+
+        // Tạo 5 electron cho vòng ngoài cùng
+        const outermostElectrons = [];
+for (let i = 0; i < 5; i++) {
+    const outermostElectron = BABYLON.MeshBuilder.CreateSphere(`outermostElectron${i}`, {diameter: 0.2}, scene);
+    outermostElectron.material = new BABYLON.StandardMaterial(`outermostElectronMat${i}`, scene);
+    outermostElectron.material.diffuseColor = new BABYLON.Color3(0, 1, 0); // Màu xanh lá
+    outermostElectrons.push(outermostElectron);
+}
+
+        // Gộp tất cả animation vào một hàm
+        scene.registerBeforeRender(function() {
+            const time = performance.now();
+            
+            // Animation cho electron và electron2
+            const electronAngle = time * ELECTRON_SPEED;
+            electron.position.x = circleRadius * Math.cos(electronAngle);
+            electron.position.z = -circleRadius * Math.sin(electronAngle);
+
+            electron2.position.x = circleRadius * Math.cos(electronAngle + Math.PI);
+            electron2.position.z = -circleRadius * Math.sin(electronAngle + Math.PI);
+
+            // Animation cho 8 electron vòng ngoài
+            const outerElectronAngle = time * OUTER_ELECTRON_SPEED;
+            for (let i = 0; i < outerElectrons.length; i++) {
+                const angle = outerElectronAngle + (i * 2 * Math.PI / 8);
+                outerElectrons[i].position.x = OUTER_CIRCLE_RADIUS * Math.cos(angle);
+                outerElectrons[i].position.z = -OUTER_CIRCLE_RADIUS * Math.sin(angle);
+            }
+
+            // Animation cho electron mới nhất
+            const outermostElectronAngle = time * OUTER_ELECTRON_SPEED * 0.8; // Tốc độ chậm hơn một chút
+    for (let i = 0; i < outermostElectrons.length; i++) {
+        const angle = outermostElectronAngle + (i * 2 * Math.PI / 5);
+        outermostElectrons[i].position.x = OUTERMOST_CIRCLE_RADIUS * Math.cos(angle);
+        outermostElectrons[i].position.z = -OUTERMOST_CIRCLE_RADIUS * Math.sin(angle);
+    }
+
+        });
+
+        // Render loop
+        engine.runRenderLoop(() => {
+            scene.render();
+        });
+
+        // Resize khi thay đổi kích thước màn hình
+        window.addEventListener("resize", () => {
+            engine.resize();
+        });
+
+        // Toggle tooltip visibility on mouse click
+        const tooltip = document.getElementById("tooltip");
+        canvas.addEventListener("click", () => {
+            tooltip.style.display = tooltip.style.display === "none" ? "block" : "none";
+        });
+
+        
+        // **Thêm thanh kéo dọc để điều chỉnh thu/phóng**
+        const slider = new BABYLON.GUI.Slider();
+        slider.minimum = 5;
+        slider.maximum = 20;
+        slider.value = 10;
+        slider.height = "200px";
+        slider.width = "20px";
+        slider.isVertical = true;
+        slider.color = "green";
+        slider.background = "gray";
+        slider.onValueChangedObservable.add(function (value) {
+            scene.activeCamera.radius = value; // Điều chỉnh khoảng cách camera
+        });
+
+        const advancedTextureSlider = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+        advancedTextureSlider.addControl(slider);
+
+        slider.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        slider.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        slider.left = -30;
+        slider.top = -30;
+    </script>
+</body>
+</html>

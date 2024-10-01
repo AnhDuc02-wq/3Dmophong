@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Molecule NH₃</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+    <style>
+        /* Thêm CSS cho chú thích */
+        #legend {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        /* CSS cho thanh kéo */
+        #sliderContainer {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 20px;
+            height: 200px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas" style="width: 100%; height: 100vh;"></canvas>
+    <!-- Phần chú thích tổng quan -->
+    <div id="legend">
+        <p><strong>Quá trình liên kết:</strong> phân tử khí Ammonia (NH<sub>3</sub>) gồm một nguyên tử nitơ ở trung tâm liên kết cộng hóa trị với ba nguyên tử hydro, tạo thành cấu trúc hình chóp tam giác với cặp electron tự do của nitơ ở đỉnh.</p>
+    </div>
+    <script>
+        // Khởi tạo Babylon.js
+        var canvas = document.getElementById("renderCanvas");
+        var engine = new BABYLON.Engine(canvas, true);
+
+        var createScene = function () {
+            var scene = new BABYLON.Scene(engine);
+
+            // Ánh sáng
+            var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 1, 0), scene);
+
+            // Camera
+            var camera = new BABYLON.ArcRotateCamera("Camera", Math.PI / 2, Math.PI / 4, 10, BABYLON.Vector3.Zero(), scene);
+            camera.attachControl(canvas, true);
+
+            // Nguyên tử Nitơ (N) - màu xanh
+            var nitrogen = BABYLON.MeshBuilder.CreateSphere("nitrogen", { diameter: 1.0 }, scene);
+            nitrogen.position = new BABYLON.Vector3(0, 0, 0);  // Vị trí trung tâm
+            nitrogen.material = new BABYLON.StandardMaterial("nitrogenMat", scene);
+            nitrogen.material.diffuseColor = new BABYLON.Color3(0, 0, 1); // Màu xanh
+
+            // Nguyên tử Hydro (H) - màu trắng
+            var hydrogen1 = BABYLON.MeshBuilder.CreateSphere("hydrogen1", { diameter: 0.5 }, scene);
+            hydrogen1.position = new BABYLON.Vector3(1, -1, 0);  // Vị trí xung quanh Nitơ
+            hydrogen1.material = new BABYLON.StandardMaterial("hydrogenMat", scene);
+            hydrogen1.material.diffuseColor = new BABYLON.Color3(1, 1, 1); // Màu trắng
+
+            var hydrogen2 = BABYLON.MeshBuilder.CreateSphere("hydrogen2", { diameter: 0.5 }, scene);
+            hydrogen2.position = new BABYLON.Vector3(-1, -1, 0);
+            hydrogen2.material = new BABYLON.StandardMaterial("hydrogenMat", scene);
+            hydrogen2.material.diffuseColor = new BABYLON.Color3(1, 1, 1);
+
+            var hydrogen3 = BABYLON.MeshBuilder.CreateSphere("hydrogen3", { diameter: 0.5 }, scene);
+            hydrogen3.position = new BABYLON.Vector3(0, -1, 1);
+            hydrogen3.material = new BABYLON.StandardMaterial("hydrogenMat", scene);
+            hydrogen3.material.diffuseColor = new BABYLON.Color3(1, 1, 1);
+
+            // Tạo thanh liên kết (ống trụ) giữa Nitơ và Hydro
+            var bond1 = BABYLON.MeshBuilder.CreateCylinder("bond1", { height: 1.5, diameter: 0.1 }, scene);
+            bond1.position = new BABYLON.Vector3(0.5, -0.5, 0);  // Vị trí trung tâm giữa Nitơ và Hydro1
+            bond1.rotation.z = Math.PI / 4; // Điều chỉnh góc nghiêng
+
+            var bond2 = BABYLON.MeshBuilder.CreateCylinder("bond2", { height: 1.5, diameter: 0.1 }, scene);
+            bond2.position = new BABYLON.Vector3(-0.5, -0.5, 0);
+            bond2.rotation.z = Math.atan2(1, -1); // Điều chỉnh góc nghiêng
+            
+            var bond3 = BABYLON.MeshBuilder.CreateCylinder("bond3", { height: 1.5, diameter: 0.1 }, scene);
+            bond3.position = new BABYLON.Vector3(0, -0.5, 0.5);
+            bond3.rotation.x = Math.atan2(-1, 1);  // Điều chỉnh góc nghiêng
+
+            // Tạo chú thích tổng quát cho NH₃
+            const advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+            // Chú thích Nitrogen
+            const labelN = new BABYLON.GUI.Rectangle("labelN");
+            labelN.background = "black";
+            labelN.height = "30px";
+            labelN.width = "100px";
+            labelN.cornerRadius = 5;
+            labelN.thickness = 1;
+            labelN.color = "white";
+            labelN.linkOffsetY = -20;
+            labelN.alpha = 0.7;
+            advancedTexture.addControl(labelN);
+            labelN.linkWithMesh(nitrogen);
+
+            const textN = new BABYLON.GUI.TextBlock();
+            textN.text = "Nitrogen (N)";
+            textN.color = "white";
+            labelN.addControl(textN);
+
+            // Chú thích Hydrogen 1
+            const labelH1 = new BABYLON.GUI.Rectangle("labelH1");
+            labelH1.background = "black";
+            labelH1.height = "30px";
+            labelH1.width = "100px";
+            labelH1.cornerRadius = 5;
+            labelH1.thickness = 1;
+            labelH1.color = "white";
+            labelH1.linkOffsetY = -20;
+            labelH1.alpha = 0.7;
+            advancedTexture.addControl(labelH1);
+            labelH1.linkWithMesh(hydrogen1);
+
+            const textH1 = new BABYLON.GUI.TextBlock();
+            textH1.text = "Hydrogen (H)";
+            textH1.color = "white";
+            labelH1.addControl(textH1);
+
+            // Chú thích Hydrogen 2
+            const labelH2 = new BABYLON.GUI.Rectangle("labelH2");
+            labelH2.background = "black";
+            labelH2.height = "30px";
+            labelH2.width = "100px";
+            labelH2.cornerRadius = 5;
+            labelH2.thickness = 1;
+            labelH2.color = "white";
+            labelH2.linkOffsetY = -20;
+            labelH2.alpha = 0.7;
+            advancedTexture.addControl(labelH2);
+            labelH2.linkWithMesh(hydrogen2);
+
+            const textH2 = new BABYLON.GUI.TextBlock();
+            textH2.text = "Hydrogen (H)";
+            textH2.color = "white";
+            labelH2.addControl(textH2);
+
+            // Chú thích Hydrogen 3
+            const labelH3 = new BABYLON.GUI.Rectangle("labelH3");
+            labelH3.background = "black";
+            labelH3.height = "30px";
+            labelH3.width = "100px";
+            labelH3.cornerRadius = 5;
+            labelH3.thickness = 1;
+            labelH3.color = "white";
+            labelH3.linkOffsetY = -20;
+            labelH3.alpha = 0.7;
+            advancedTexture.addControl(labelH3);
+            labelH3.linkWithMesh(hydrogen3);
+
+            const textH3 = new BABYLON.GUI.TextBlock();
+            textH3.text = "Hydrogen (H)";
+            textH3.color = "white";
+            labelH3.addControl(textH3);
+
+            // Ẩn tất cả chú thích ban đầu
+            labelN.isVisible = false;
+            labelH1.isVisible = false;
+            labelH2.isVisible = false;
+            labelH3.isVisible = false;
+
+            // **Tạo chế độ bật/tắt chú thích khi click chuột**
+            scene.onPointerDown = function (evt, pickResult) {
+                if (pickResult.hit) {
+                    if (pickResult.pickedMesh === nitrogen) {
+                        labelN.isVisible = !labelN.isVisible; // Bật/tắt chú thích Nitrogen
+                        labelH1.isVisible = false; // Ẩn chú thích Hydrogen 1
+                        labelH2.isVisible = false; // Ẩn chú thích Hydrogen 2
+                        labelH3.isVisible = false; // Ẩn chú thích Hydrogen 3
+                    } else if (pickResult.pickedMesh === hydrogen1) {
+                        labelH1.isVisible = !labelH1.isVisible; // Bật/tắt chú thích Hydrogen 1
+                    } else if (pickResult.pickedMesh === hydrogen2) {
+                        labelH2.isVisible = !labelH2.isVisible; // Bật/tắt chú thích Hydrogen 2
+                    } else if (pickResult.pickedMesh === hydrogen3) {
+                        labelH3.isVisible = !labelH3.isVisible; // Bật/tắt chú thích Hydrogen 3
+                    }
+                }
+            };
+
+            // **Thêm thanh kéo dọc để điều chỉnh thu/phóng**
+            const slider = new BABYLON.GUI.Slider();
+            slider.minimum = 5;
+            slider.maximum = 20;
+            slider.value = 10;
+            slider.height = "200px";
+            slider.width = "20px";
+            slider.isVertical = true;
+            slider.color = "green";
+            slider.background = "gray";
+            slider.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+            slider.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+            slider.top = "0px";
+            slider.left = "0px";
+            slider.onValueChangedObservable.add(function (value) {
+                camera.radius = value; // Điều chỉnh khoảng cách camera
+            });
+            const advancedTextureSlider = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+            advancedTextureSlider.addControl(slider);
+
+            slider.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+            slider.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+            slider.left = -30;
+            slider.top = -30;
+
+
+            return scene;
+        };
+
+        var scene = createScene();
+
+        engine.runRenderLoop(function () {
+            scene.render();
+        });
+
+        window.addEventListener("resize", function () {
+            engine.resize();
+        });
+    </script>
+</body>
+</html>

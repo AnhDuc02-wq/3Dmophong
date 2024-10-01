@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đơn Chất Và Hợp Chất</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+    <style>
+        /* Thêm CSS cho chú thích */
+        #legend {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        /* Thêm CSS cho thanh kéo */
+        #sliderContainer {
+            position: absolute;
+            right: 10px;
+            bottom: 10%;
+            width: 50px;
+            height: 300px;
+            text-align: center;
+        }
+        #legend.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas" style="width: 100%; height: 100vh;"></canvas>
+    <!-- Phần chú thích tổng quan -->
+    <div id="legend">
+        <p><strong>Quá trình liên kết:</strong> Các nguyên tử Oxy (O<sub>2</sub>) liên kết với nhau thông qua liên kết đôi. Trong H<sub>2</sub>O, hai nguyên tử Hydro liên kết với nguyên tử Oxy thông qua liên kết cộng hóa trị.</p>
+    </div>
+    <!-- Thanh trượt để thu/phóng -->
+    <div id="sliderContainer"></div>
+
+    <script>
+        // Khởi tạo scene
+        const canvas = document.getElementById("renderCanvas");
+        const engine = new BABYLON.Engine(canvas, true);
+        const scene = new BABYLON.Scene(engine);
+
+        // Tạo camera với khoảng cách ban đầu là 15
+        const camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 2, 15, BABYLON.Vector3.Zero(), scene);
+        camera.attachControl(canvas, true);
+
+        // Tạo ánh sáng
+        const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, 0), scene);
+
+        // Tạo GUI để thêm chú thích trên các phần tử
+        const advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+        // **Đơn chất:**
+        // Tạo hai nguyên tử Oxy giống nhau (mô phỏng O2)
+        const oxygen1 = BABYLON.MeshBuilder.CreateSphere("oxygen1", {diameter: 1}, scene);
+        oxygen1.material = new BABYLON.StandardMaterial("oxygenMat", scene);
+        oxygen1.material.diffuseColor = new BABYLON.Color3(0.7, 0.7, 1); // Màu xanh nhạt
+        oxygen1.position.x = -3;
+
+        const oxygen2 = BABYLON.MeshBuilder.CreateSphere("oxygen2", {diameter: 1}, scene);
+        oxygen2.material = oxygen1.material;
+        oxygen2.position.x = -1.5;
+
+        // **Chú thích cho O2**
+        const labelO2 = new BABYLON.GUI.Rectangle("labelO2");
+        labelO2.background = "black";
+        labelO2.height = "40px";
+        labelO2.alpha = 0.5;
+        labelO2.width = "140px";
+        labelO2.cornerRadius = 5;
+        labelO2.thickness = 1;
+        labelO2.linkOffsetY = -30;
+        advancedTexture.addControl(labelO2); 
+        labelO2.linkWithMesh(oxygen1);   
+        const textO2 = new BABYLON.GUI.TextBlock();
+        textO2.text = "Oxy (O₂)";
+        textO2.color = "white";
+        labelO2.addControl(textO2);
+
+        labelO2.isVisible = false; // Ẩn chú thích ban đầu
+
+        // **Tạo liên kết giữa hai nguyên tử Oxy (O2)**
+        const bondO2 = BABYLON.MeshBuilder.CreateLines("bondO2", {
+            points: [
+                oxygen1.position,
+                oxygen2.position
+            ]
+        }, scene);
+        bondO2.color = BABYLON.Color3.Blue();
+
+        // **Hợp chất:**
+        // Tạo phân tử nước với hai nguyên tử Hydro và một nguyên tử Oxy (mô phỏng H2O)
+        const oxygen = BABYLON.MeshBuilder.CreateSphere("oxygen", {diameter: 1}, scene);
+        oxygen.material = new BABYLON.StandardMaterial("oxygenMat", scene);
+        oxygen.material.diffuseColor = new BABYLON.Color3(1, 0, 0); // Màu đỏ (Oxy)
+        oxygen.position.x = 3;
+
+        const hydrogen1 = BABYLON.MeshBuilder.CreateSphere("hydrogen1", {diameter: 0.5}, scene);
+        hydrogen1.material = new BABYLON.StandardMaterial("hydrogenMat", scene);
+        hydrogen1.material.diffuseColor = new BABYLON.Color3(0, 1, 0); // Màu xanh lá (Hydro)
+        hydrogen1.position.x = 4.5;
+        hydrogen1.position.y = 1;
+
+        const hydrogen2 = BABYLON.MeshBuilder.CreateSphere("hydrogen2", {diameter: 0.5}, scene);
+        hydrogen2.material = hydrogen1.material;
+        hydrogen2.position.x = 4.5;
+        hydrogen2.position.y = -1;
+
+        // **Chú thích cho H2O**
+        const labelH2O = new BABYLON.GUI.Rectangle("labelH2O");
+        labelH2O.background = "black";
+        labelH2O.height = "40px";
+        labelH2O.alpha = 0.5;
+        labelH2O.width = "140px";
+        labelH2O.cornerRadius = 5;
+        labelH2O.thickness = 1;
+        labelH2O.linkOffsetY = -30;
+        advancedTexture.addControl(labelH2O); 
+        labelH2O.linkWithMesh(oxygen);   
+        const textH2O = new BABYLON.GUI.TextBlock();
+        textH2O.text = "Nước(O₂)";
+        textH2O.color = "white";
+        labelH2O.addControl(textH2O);
+
+        labelH2O.isVisible = false; // Ẩn chú thích ban đầu
+
+        // **Chú thích cho Hydrogen (H2)**
+        const labelH1 = new BABYLON.GUI.Rectangle("labelH1");
+        labelH1.background = "black";
+        labelH1.height = "40px";
+        labelH1.alpha = 0.5;
+        labelH1.width = "140px";
+        labelH1.cornerRadius = 5;
+        labelH1.thickness = 1;
+        labelH1.linkOffsetY = -30;
+        advancedTexture.addControl(labelH1); 
+        labelH1.linkWithMesh(hydrogen1);   
+        const textH1 = new BABYLON.GUI.TextBlock();
+        textH1.text = "Hydro (H₂)";
+        textH1.color = "white";
+        labelH1.addControl(textH1);
+        labelH1.isVisible = false; // Ẩn chú thích ban đầu
+
+        const labelH2 = new BABYLON.GUI.Rectangle("labelH2");
+        labelH2.background = "black";
+        labelH2.height = "40px";
+        labelH2.alpha = 0.5;
+        labelH2.width = "140px";
+        labelH2.cornerRadius = 5;
+        labelH2.thickness = 1;
+        labelH2.linkOffsetY = -30;
+        advancedTexture.addControl(labelH2); 
+        labelH2.linkWithMesh(hydrogen2);   
+        const textH2 = new BABYLON.GUI.TextBlock();
+        textH2.text = "Hydro (H₂)";
+        textH2.color = "white";
+        labelH2.addControl(textH2);
+        labelH2.isVisible = false; // Ẩn chú thích ban đầu
+
+        // **Tạo liên kết giữa các nguyên tử của H2O**
+        const bondH1 = BABYLON.MeshBuilder.CreateLines("bondH1", {
+            points: [
+                oxygen.position,
+                hydrogen1.position
+            ]
+        }, scene);
+        bondH1.color = BABYLON.Color3.Green();
+
+        const bondH2 = BABYLON.MeshBuilder.CreateLines("bondH2", {
+            points: [
+                oxygen.position,
+                hydrogen2.position
+            ]
+        }, scene);
+        bondH2.color = BABYLON.Color3.Green();
+
+        // **Hiệu ứng xoay nhẹ**
+        scene.registerBeforeRender(() => {
+            oxygen1.rotation.y += 0.01;
+            oxygen2.rotation.y += 0.01;
+            oxygen.rotation.y += 0.01;
+            hydrogen1.rotation.y += 0.01;
+            hydrogen2.rotation.y += 0.01;
+        });
+
+        // **Thêm thanh kéo dọc để điều chỉnh thu/phóng**
+        const slider = new BABYLON.GUI.Slider();
+        slider.minimum = 5;
+        slider.maximum = 50;
+        slider.value = camera.radius;
+        slider.height = "300px";  // Chiều cao của thanh trượt
+        slider.width = "50px";    // Chiều rộng của thanh trượt
+        slider.isVertical = true; // Đặt thành thanh trượt dọc
+        slider.color = "green";
+        slider.background = "grey";
+        slider.onValueChangedObservable.add(function (value) {
+            camera.radius = value; // Thay đổi khoảng cách của camera
+        });
+
+        const guiSlider = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+        guiSlider.addControl(slider);
+        slider.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        slider.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        slider.left = -10; // Đặt cách lề phải
+        slider.top = -10;  // Đặt cách lề dưới
+
+        // **Thêm sự kiện thu/phóng bằng con lăn chuột**
+        scene.onPrePointerObservable.add((pointerInfo) => {
+            if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERWHEEL) {
+                const event = pointerInfo.event;
+                camera.radius -= event.deltaY * 0.05; // điều chỉnh tốc độ thu/phóng
+                camera.radius = BABYLON.Scalar.Clamp(camera.radius, 5, 50); // Giới hạn thu/phóng
+                slider.value = camera.radius; // Đồng bộ thanh trượt với con lăn chuột
+            }
+        });
+
+       // Sự kiện nhấp chuột để hiển thị/ẩn chú thích
+       oxygen1.actionManager = new BABYLON.ActionManager(scene);
+        oxygen1.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, function() {
+            labelO2.isVisible = !labelO2.isVisible;
+        }));
+
+        oxygen.actionManager = new BABYLON.ActionManager(scene);
+        oxygen.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, function() {
+            labelH2O.isVisible = !labelH2O.isVisible;
+        }));
+
+        hydrogen1.actionManager = new BABYLON.ActionManager(scene);
+        hydrogen1.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, function() {
+            labelH1.isVisible = !labelH1.isVisible;
+        }));
+
+        hydrogen2.actionManager = new BABYLON.ActionManager(scene);
+        hydrogen2.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, function() {
+            labelH2.isVisible = !labelH2.isVisible;
+        }));
+            
+            
+        
+        // Render loop
+        engine.runRenderLoop(() => {
+            scene.render();
+        });
+
+        // Resize khi thay đổi kích thước màn hình
+        window.addEventListener("resize", () => {
+            engine.resize();
+        });
+    </script>
+</body>
+</html>
+
