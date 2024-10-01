@@ -3,33 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hydrogen Atom Simulation</title>
+    <title>Mô phỏng nguyên tử Helium 2D/3D</title>
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
     <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
-    <style>/* Thêm CSS cho thanh kéo */
-        #sliderContainer {
-            position: absolute;
-            right: 10px;
-            bottom: 10%;
-            width: 50px;
-            height: 300px;
-            text-align: center;
+    <style>
+        #renderCanvas {
+            width: 100%;
+            height: 100vh;
+            touch-action: none;
         }
     </style>
-
 </head>
 <body>
-    <canvas id="renderCanvas" style="width: 100%; height: 100vh;"></canvas>
+    <canvas id="renderCanvas"></canvas>
     <div id="tooltip" style="position: absolute; top: 10px; left: 10px; background-color: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 5px; display: none;">
         <h3>Helium (He) :</h3>
         <ul>
             <li>Hình dạng : Khí không màu, phát sáng với ánh sáng tím khi ở thể plasma</li>
-            <li>Số hiệu nguyên tử (Z) :	2</li>
+            <li>Số hiệu nguyên tử (Z) : 2</li>
             <li>Khối lượng nguyên tử chuẩn (±) (Ar) : 4,002602</li>
             <li>Phân loại : khí hiếm</li>
             <li>Nhóm, phân lớp : 18, s</li>
             <li>Chu kỳ : 1</li>
-            <li>Cấu hình electron :	1s2</li>
+            <li>Cấu hình electron : 1s2</li>
         </ul>
     </div>
 
@@ -46,110 +42,136 @@
         // Tạo ánh sáng
         const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, 0), scene);
 
-        // Tạo hạt nhân của nguyên tử (hình cầu ở trung tâm)
+        // Tạo hạt nhân (hình cầu ở trung tâm)
         const nucleus = BABYLON.MeshBuilder.CreateSphere("nucleus", {diameter: 1}, scene);
         nucleus.material = new BABYLON.StandardMaterial("nucleusMat", scene);
         nucleus.material.diffuseColor = new BABYLON.Color3(1, 0, 0); // Màu đỏ
 
-        // Tạo hình cầu lớn để bao quanh và chứa electron
-        const outerSphere = BABYLON.MeshBuilder.CreateSphere("outerSphere", {diameter: 4, sideOrientation: BABYLON.Mesh.DOUBLESIDE}, scene);
+        // Tạo hình cầu lớn bao quanh
+        const outerSphere = BABYLON.MeshBuilder.CreateSphere("outerSphere", {diameter: 6, sideOrientation: BABYLON.Mesh.DOUBLESIDE}, scene);
         outerSphere.material = new BABYLON.StandardMaterial("outerSphereMat", scene);
-        outerSphere.material.alpha = 0.1; // Làm cho hình cầu bao quanh mờ đi
+        outerSphere.material.alpha = 0.1; // Làm mờ hình cầu bao quanh
 
-        // Tạo vòng tròn chia đôi hình cầu
-        const circlePath = [];
-        const circleRadius = 2;
-        const deltaTheta = 0.05; // Giảm giá trị để tăng số điểm
-        for(let theta = 0; theta <= 2 * Math.PI; theta += deltaTheta) {
-        circlePath.push(new BABYLON.Vector3(circleRadius * Math.cos(theta), 0, circleRadius * Math.sin(theta)));
+        // Tạo đường tròn cho chế độ 2D
+        const orbitPath2D = new BABYLON.TransformNode("orbitPath2D", scene);
+        const circlePath2D = [];
+        const circleRadius2D = 2.5;
+        for(let theta = 0; theta <= 2 * Math.PI; theta += 0.1) {
+            circlePath2D.push(new BABYLON.Vector3(circleRadius2D * Math.cos(theta), 0, circleRadius2D * Math.sin(theta)));
         }
+        circlePath2D.push(circlePath2D[0]);
+        const orbit2D = BABYLON.MeshBuilder.CreateLines("circle2D", {points: circlePath2D}, scene);
+        orbit2D.parent = orbitPath2D;
 
-        circlePath.push(circlePath[0]); // Thêm điểm đầu tiên vào cuối để đảm bảo vòng tròn kín
+        // Tạo đường tròn cho electron thứ nhất trong chế độ 3D
+        const orbitPath3D1 = new BABYLON.TransformNode("orbitPath3D1", scene);
+        const circlePath3D1 = [];
+        const circleRadius3D1 = 2;
+        for(let theta = 0; theta <= 2 * Math.PI; theta += 0.1) {
+            circlePath3D1.push(new BABYLON.Vector3(circleRadius3D1 * Math.cos(theta), 0, circleRadius3D1 * Math.sin(theta)));
+        }
+        circlePath3D1.push(circlePath3D1[0]);
+        const orbit3D1 = BABYLON.MeshBuilder.CreateLines("circle3D1", {points: circlePath3D1}, scene);
+        orbit3D1.parent = orbitPath3D1;
 
-        const curve = BABYLON.Curve3.CreateCatmullRomSpline(circlePath, 60, true);
-        const dividingCircle = BABYLON.MeshBuilder.CreateLines("dividingCircle", {points: curve.getPoints()}, scene);
-        dividingCircle.color = new BABYLON.Color3(1, 1, 1); // Màu trắng
+        // Tạo đường tròn cho electron thứ hai trong chế độ 3D
+        const orbitPath3D2 = new BABYLON.TransformNode("orbitPath3D2", scene);
+        const circlePath3D2 = [];
+        const circleRadius3D2 = 3;
+        for(let theta = 0; theta <= 2 * Math.PI; theta += 0.1) {
+            circlePath3D2.push(new BABYLON.Vector3(circleRadius3D2 * Math.cos(theta), 0, circleRadius3D2 * Math.sin(theta)));
+        }
+        circlePath3D2.push(circlePath3D2[0]);
+        const orbit3D2 = BABYLON.MeshBuilder.CreateLines("circle3D2", {points: circlePath3D2}, scene);
+        orbit3D2.parent = orbitPath3D2;
 
-        // Tạo electron (hình cầu nhỏ màu xanh lá)
-        const electron = BABYLON.MeshBuilder.CreateSphere("electron", {diameter: 0.2}, scene);
-        electron.material = new BABYLON.StandardMaterial("electronMat", scene);
-        electron.material.diffuseColor = new BABYLON.Color3(0, 1, 0); // Màu xanh lá
+        // Tạo electron
+        const electron1 = BABYLON.MeshBuilder.CreateSphere("electron1", {diameter: 0.2}, scene);
+        electron1.material = new BABYLON.StandardMaterial("electron1Mat", scene);
+        electron1.material.diffuseColor = new BABYLON.Color3(0, 1, 0); // Màu xanh lá
 
-        // Tạo electron thứ hai (màu xanh lá)
         const electron2 = BABYLON.MeshBuilder.CreateSphere("electron2", {diameter: 0.2}, scene);
         electron2.material = new BABYLON.StandardMaterial("electron2Mat", scene);
         electron2.material.diffuseColor = new BABYLON.Color3(0, 1, 0); // Màu xanh lá
 
-        // Vị trí ban đầu của electron
-        electron.position.x = circleRadius;
+        // Biến để theo dõi trạng thái 2D/3D
+        let is3D = false;
 
-        // Animation cho electron xoay quanh vòng tròn chia đôi hình cầu
+        // Animation cho electron và đường tròn
         scene.registerBeforeRender(function() {
             const time = performance.now() * 0.002;
-            electron.position.x = circleRadius * Math.cos(-time);
-            electron.position.z = circleRadius * Math.sin(-time);
+
+            if (is3D) {
+                // Chế độ 3D
+                orbit2D.setEnabled(false);
+                orbit3D1.setEnabled(true);
+                orbit3D2.setEnabled(true);
+
+                // Xoay đường tròn trong không gian 3D
+                orbitPath3D1.rotation.x = Math.sin(time * 0.5) * Math.PI / 4;
+                orbitPath3D1.rotation.z = Math.cos(time * 0.5) * Math.PI / 4;
+
+                orbitPath3D2.rotation.x = Math.cos(time * 0.5) * Math.PI / 4;
+                orbitPath3D2.rotation.z = Math.sin(time * 0.5) * Math.PI / 4;
+
+                // Cập nhật vị trí của electron1
+                const angle1 = -time % (2 * Math.PI);
+                const localPosition1 = new BABYLON.Vector3(
+                    circleRadius3D1 * Math.cos(angle1),
+                    0,
+                    circleRadius3D1 * Math.sin(angle1)
+                );
+                electron1.position = BABYLON.Vector3.TransformCoordinates(localPosition1, orbitPath3D1.getWorldMatrix());
+
+                // Cập nhật vị trí của electron2
+                const angle2 = (-time + Math.PI) % (2 * Math.PI);
+                const localPosition2 = new BABYLON.Vector3(
+                    circleRadius3D2 * Math.cos(angle2),
+                    0,
+                    circleRadius3D2 * Math.sin(angle2)
+                );
+                electron2.position = BABYLON.Vector3.TransformCoordinates(localPosition2, orbitPath3D2.getWorldMatrix());
+            } else {
+                // Chế độ 2D
+                orbit2D.setEnabled(true);
+                orbit3D1.setEnabled(false);
+                orbit3D2.setEnabled(false);
+
+                // Đặt lại vị trí của đường tròn khi ở chế độ 2D
+                orbitPath2D.rotation.x = 0;
+                orbitPath2D.rotation.z = 0;
+
+                // Cập nhật vị trí của electron1 và electron2 trên cùng một đường tròn
+                const angle1 = -time % (2 * Math.PI);
+                const angle2 = (-time + Math.PI) % (2 * Math.PI);
+                
+                electron1.position.x = circleRadius2D * Math.cos(angle1);
+                electron1.position.y = 0;
+                electron1.position.z = circleRadius2D * Math.sin(angle1);
+
+                electron2.position.x = circleRadius2D * Math.cos(angle2);
+                electron2.position.y = 0;
+                electron2.position.z = circleRadius2D * Math.sin(angle2);
+            }
         });
 
-        scene.registerBeforeRender(function() {
-            const time = performance.now() * 0.002;
-        // Animation cho electron thứ hai (màu xanh lá)
-        electron2.position.x = circleRadius * Math.cos(-time + Math.PI); // Đối diện với electron đầu tiên
-        electron2.position.z = circleRadius * Math.sin(-time + Math.PI);
-    });
-
-        // Khởi tạo mảng để lưu trữ vị trí của luồng dẫn
-const trailPositions = [];
-const maxTrailLength = 50;
-
-// Tạo đối tượng để vẽ luồng dẫn
-let trail;
-
-// Hàm cập nhật và hiển thị luồng dẫn
-function updateTrail() {
-    // Thêm vị trí hiện tại của electron vào mảng
-    trailPositions.push(electron.position.clone());
-    
-    // Giới hạn độ dài của luồng dẫn
-    if (trailPositions.length > maxTrailLength) {
-        trailPositions.shift();
-    }
-    
-    // Xóa luồng dẫn cũ nếu có
-    if (trail) {
-        trail.dispose();
-    }
-    
-    // Tạo luồng dẫn mới
-    trail = BABYLON.MeshBuilder.CreateLines("trail", {points: trailPositions}, scene);
-    trail.color = new BABYLON.Color3(0, 1, 0); // Màu xanh lá
-}
-
-// Cập nhật vị trí electron và luồng dẫn trong mỗi khung hình
-scene.registerBeforeRender(function() {
-    const time = performance.now() * 0.002;
-    electron.position.x = circleRadius * Math.cos(-time);
-    electron.position.z = circleRadius * Math.sin(-time);
-    
-    updateTrail();
-});    
-
-        // Render loop
-        engine.runRenderLoop(() => {
-            scene.render();
+        // Xử lý sự kiện click để chuyển đổi giữa 2D và 3D
+        let clickCount = 0;
+        canvas.addEventListener("click", () => {
+            clickCount++;
+            if (clickCount % 2 === 0) {
+                is3D = !is3D;
+                console.log(is3D ? "Chuyển sang chế độ 3D" : "Chuyển sang chế độ 2D");
+            }
         });
 
-        // Resize khi thay đổi kích thước màn hình
-        window.addEventListener("resize", () => {
-            engine.resize();
-        });
-
-        // Toggle tooltip visibility on mouse click
+        // Xử lý sự kiện click để hiển thị/ẩn tooltip
         const tooltip = document.getElementById("tooltip");
         canvas.addEventListener("click", () => {
             tooltip.style.display = tooltip.style.display === "none" ? "block" : "none";
         });
 
-        // **Thêm thanh kéo dọc để điều chỉnh thu/phóng**
+        // Thêm thanh kéo để điều chỉnh thu/phóng
         const slider = new BABYLON.GUI.Slider();
         slider.minimum = 5;
         slider.maximum = 20;
@@ -160,7 +182,7 @@ scene.registerBeforeRender(function() {
         slider.color = "green";
         slider.background = "gray";
         slider.onValueChangedObservable.add(function (value) {
-            scene.activeCamera.radius = value; // Điều chỉnh khoảng cách camera
+            camera.radius = value;
         });
 
         const advancedTextureSlider = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
@@ -168,8 +190,18 @@ scene.registerBeforeRender(function() {
 
         slider.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
         slider.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
-        slider.left = -30;
-        slider.top = -30;
+        slider.left = "-30px";
+        slider.top = "-30px";
+
+        // Render loop
+        engine.runRenderLoop(() => {
+            scene.render();
+        });
+
+        // Resize khi thay đổi kích thước màn hình
+        window.addEventListener("resize", () => {
+            engine.resize();
+        });
     </script>
 </body>
 </html>
